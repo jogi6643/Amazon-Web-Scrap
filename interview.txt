@@ -1,0 +1,109 @@
+Stet check
+Step 1   Go to https://www.amazon.com/
+Step 2   Search keyword – “baby milk” and scrape below details for products listed on website
+Product Id / ASIN
+Product Name
+Price
+Sponsored – YES/No
+Review Count
+Average Ratings
+
+
+#import libraries
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+
+#connect dataBase 
+import mysql.connector
+mydb = mysql.connector.connect(
+host = 'localhost',
+username = 'root',
+password = '',
+database = 'interview'
+)
+mysetdb = mydb.cursor()
+# print(mysetdb)
+
+
+
+
+# use header permission for web page data
+HEADERS = ({'User-Agent':
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',
+            'Accept-Language': 'en-US, en;q=0.5'})
+
+
+url = 'https://www.amazon.com/s?k=baby+milk&ref=nb_sb_noss_1'
+web_url = requests.get(url,headers=HEADERS)
+soup = BeautifulSoup(web_url.content,'html.parser')
+data = soup.find_all('div',{'data-component-type':'s-search-result'})
+data = data[0]
+
+
+
+def get_data(data):
+    try:
+        asin = data.get('data-asin')
+    except AttributeError:
+        asin = 'No Asin'
+    try:
+        productname = data.find('span',{'class':'a-size-base-plus'}).text
+    except AttributeError:
+        productname = 'No Product Name'
+    try:
+        price =data.find('span','a-price').find('span','a-offscreen').text
+    except AttributeError:
+        price = 'No Product Price'
+    try:
+        sponser = data.find('span',{'class':'a-size-mini'}).text
+        sponser = 'Yes'
+    except AttributeError:
+        sponser = 'No'
+    try:
+        rCount = data.find('span',{'class':'a-size-base'}).text
+    except AttributeError:
+        rCount = 'No Count Ratings'
+    try:
+         arCount = data.i.text
+    except AttributeError:
+        arCount = 'No Average Count Ratings'
+    d= (asin,productname,price,sponser,rCount,arCount)
+    return d
+
+
+
+def get_url(item):
+    url = 'https://www.amazon.com/s?k={}'
+    item = item.replace(' ','+')
+    url =url.format(item)
+    url +='&page={}'
+    return url
+
+
+def search_item(item):
+    records = []
+    for page in range(1,8):
+        url = get_url(item)
+        url = url.format(page)
+        print(url)
+        web_url = requests.get(url,headers=HEADERS)
+        soup = BeautifulSoup(web_url.content,'html.parser')
+        data = soup.find_all('div',{'data-component-type':'s-search-result'})
+        for row in data:
+            row = get_data(row)
+            if(row):
+                sql = "INSERT INTO babymilk(asin, productname, price, sponser, rCount, arCount) VALUES (%s,%s,%s,%s,%s,%s)"
+                val = (row)
+                mysetdb.execute(sql,val)
+                mydb.commit()
+                records.append(row)
+
+#     print(records)
+    with open ('interview7.csv','w',newline='',encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['asin','productname','price','sponser','rCount','arCount'])
+        writer.writerows(records)
+    
+search_item('baby milk')
