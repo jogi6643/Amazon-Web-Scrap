@@ -1,4 +1,4 @@
-Stet check
+Start
 Step 1   Go to https://www.amazon.com/
 Step 2   Search keyword – “baby milk” and scrape below details for products listed on website
 Product Id / ASIN
